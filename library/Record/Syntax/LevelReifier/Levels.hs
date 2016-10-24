@@ -34,7 +34,7 @@ decl =
     E.SpliceDecl _ e -> exp e
     E.TypeSig _ _ t -> type_ t
     E.FunBind ml -> foldMap match ml
-    E.PatBind _ p r b -> pat p <> rhs r <> binds b
+    E.PatBind _ p r b -> pat p <> rhs r <> bindsMaybe b
     E.ForImp _ _ _ _ _ t -> type_ t
     E.ForExp _ _ _ _ t -> type_ t
     E.RulePragmaDecl _ rl -> foldMap rule rl
@@ -61,7 +61,7 @@ ruleVar =
 match :: E.Match -> Levels
 match =
   \(E.Match _ _ pl tm r b) ->
-    foldMap pat pl <> foldMap type_ tm <> rhs r <> binds b
+    foldMap pat pl <> foldMap type_ tm <> rhs r <> bindsMaybe b
 
 rhs :: E.Rhs -> Levels
 rhs =
@@ -140,7 +140,7 @@ asst :: E.Asst -> Levels
 asst =
   \case
     E.ClassA _ tl -> foldMap type_ tl
-    E.VarA _ -> mempty
+    E.AppA _ _ -> mempty
     E.InfixA t1 _ t2 -> type_ t1 <> type_ t2
     E.IParam _ t -> type_ t
     E.EqualP t1 t2 -> type_ t1 <> type_ t2
@@ -242,7 +242,7 @@ qualStmt =
 alt :: E.Alt -> Levels
 alt =
   \case
-    E.Alt _ p r b -> pat p <> rhs r <> binds b
+    E.Alt _ p r b -> pat p <> rhs r <> bindsMaybe b
 
 pat :: E.Pat -> Levels
 pat =
@@ -291,10 +291,16 @@ stmt =
     E.RecStmt sl -> foldMap stmt sl
 
 binds :: E.Binds -> Levels
-binds =
+binds = 
   \case
     E.BDecls dl -> foldMap decl dl
     E.IPBinds il -> foldMap ipBind il
+
+bindsMaybe :: Maybe E.Binds -> Levels
+bindsMaybe =
+  \case
+    Nothing -> mempty
+    Just bs -> binds bs
 
 ipBind :: E.IPBind -> Levels
 ipBind =
